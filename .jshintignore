@@ -1,0 +1,4 @@
+frontend/admin/**/*.ts
+frontend/admin/**/*.tsx
+frontend/admin/node_modules/**
+backend/node_modules/**

@@ -1,0 +1,16 @@
+{
+  "esversion": 11,
+  "node": true,
+  "browser": true,
+  "undef": true,
+  "quotmark": "single",
+  "globals": {
+    "React": false
+  },
+  "ignores": [
+    "frontend/admin/**/*.ts",
+    "frontend/admin/**/*.tsx",
+    "frontend/admin/node_modules/**",
+    "backend/node_modules/**"
+  ]
+}

@@ -1,0 +1,4 @@
+node_modules
+frontend/admin/node_modules
+frontend/admin/.next
+backend/node_modules
