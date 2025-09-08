@@ -13,7 +13,7 @@ interface DocumentUpload {
 
 export default function KycDocumentsPage() {
   const router = useRouter();
-  const { user, updateOnboardingStep } = useAuth();
+  const { updateOnboardingStep } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});

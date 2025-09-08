@@ -20,12 +20,11 @@ const formSchema = z.object({
   emergencyContacts: z.array(contactSchema).min(1, 'At least one emergency contact is required'),
 });
 
-type ContactData = z.infer<typeof contactSchema>;
 type FormData = z.infer<typeof formSchema>;
 
 export default function EmergencyContactsPage() {
   const router = useRouter();
-  const { user, updateOnboardingStep } = useAuth();
+  const { updateOnboardingStep } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

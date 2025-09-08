@@ -35,7 +35,7 @@ export default function LoginPage() {
     try {
       setError(null);
       await login(data.email, data.password);
-    } catch (err) {
+    } catch (_) {
       setError('Invalid email or password. Please try again.');
     }
   };
