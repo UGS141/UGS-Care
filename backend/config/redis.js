@@ -1,10 +1,31 @@
-const { createClient } = require('redis');
+import { createClient } from 'redis';
+import winston from 'winston';
+  
 
-let redisClient = null;
+// --------------------
+// Setup Winston Logger
+// --------------------
+const logger = winston.createLogger({
+  level: 'warn',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(({ timestamp, level, message }) => {
+      return `${timestamp} [${level.toUpperCase()}]: ${message}`;
+    })
+  ),
+  transports: [new winston.transports.Console()],
+});
 
-function initRedis() {
+// --------------------
+// Redis Client
+// --------------------
+let redisClient = null; // RedisClientType | null
+
+export function initRedis() { // Returns RedisClientType | null
+  if (redisClient) return redisClient;
+
   if (process.env.REDIS_DISABLED === 'true') {
-    console.warn('Redis is disabled via REDIS_DISABLED=true');
+    logger.warn('Redis is disabled via REDIS_DISABLED=true');
     return null;
   }
 
@@ -12,24 +33,27 @@ function initRedis() {
   redisClient = createClient({ url });
 
   redisClient.on('error', (err) => {
-    // don't throw — log and allow app to continue
-    console.warn('Redis client error:', err && err.message ? err.message : err);
+    logger.warn(`Redis client error: ${err?.message ?? err}`);
   });
 
-  // connect but swallow connect errors
   redisClient.connect().catch((err) => {
-    console.warn('Redis connect failed:', err && err.message ? err.message : err);
+    logger.warn(`Redis connect failed: ${err?.message ?? err}`);
   });
 
   return redisClient;
 }
 
-module.exports = {
-  get client() {
+// --------------------
+// Export Client Getter
+// --------------------
+export const client = {
+  get instance() {
     if (!redisClient) initRedis();
     return redisClient;
   },
-  initRedis,
 };
 
-// docker run -d --name redis -p 6379:6379 redis:7
+// Optional: graceful shutdown
+process.on('exit', async () => {
+  if (redisClient) await redisClient.quit();
+});

@@ -3,6 +3,14 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { toast } from 'react-toastify';
+// User interface is defined locally in this file, no need for external import
+
+interface OnboardingStatus {
+  completed: boolean;
+  currentStep: string;
+  kycStatus: string;
+}
+
 
 interface User {
   id: string;
@@ -20,6 +28,9 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  onboardingStatus: OnboardingStatus | null;
+  fetchOnboardingStatus: () => Promise<OnboardingStatus>;
+  updateOnboardingStep: (step: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
@@ -53,6 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [onboardingStatus, setOnboardingStatus] = useState<OnboardingStatus | null>(null);
   const router = useRouter();
 
   // Check if user is already logged in on mount
@@ -70,6 +82,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const response = await api.get<{ user: User }>(API_ENDPOINTS.USER.PROFILE);
         setUser(response.data.user);
         setIsAuthenticated(true);
+        
+        // Fetch onboarding status
+        await fetchOnboardingStatus();
       } catch (error) {
         // Clear tokens if authentication fails
         localStorage.removeItem('accessToken');
@@ -107,7 +122,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       toast.success('Login successful');
     } catch (error: Error | unknown) {
       if (error && typeof error === 'object' && 'response' in error) {
-        toast.error(error.response?.data?.message || 'Login failed');
+        toast.error((error as any).response?.data?.message || 'Login failed');
       } else {
         toast.error('Login failed');
       }
@@ -124,8 +139,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       toast.success('Registration successful. Please verify your email.');
 void router.push('/auth/verify-email');
     } catch (error: Error | unknown) {
-      if (error && 'response' in error) {
-        toast.error(error.response?.data?.message || 'Registration failed');
+      if (error && typeof error === 'object' && 'response' in error) {
+        toast.error((error as any).response?.data?.message || 'Registration failed');
       } else {
         toast.error('Registration failed');
       }
@@ -160,8 +175,8 @@ void router.push('/auth/verify-email');
       const response = await api.post(API_ENDPOINTS.OTP.VERIFY, { otp, type: otpType });
       
       // Update user state with new verification status
-      if (response.data.user) {
-        setUser(response.data.user);
+      if (response.data && typeof response.data === 'object' && 'user' in response.data) {
+        setUser(response.data.user as User);
       }
       
       toast.success('Verification successful');
@@ -214,10 +229,45 @@ void router.push('/auth/verify-email');
     }
   };
 
+  const fetchOnboardingStatus = async (): Promise<OnboardingStatus> => {
+    try {
+      setIsLoading(true);
+      const response = await api.get(API_ENDPOINTS.ONBOARDING.STATUS);
+      const status = response.data;
+      setOnboardingStatus(status as OnboardingStatus);
+      return status as OnboardingStatus;
+    } catch (error: any) {
+      console.error('Failed to fetch onboarding status:', error);
+      toast.error(error.response?.data?.message || 'Failed to fetch onboarding status');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateOnboardingStep = async (step: string): Promise<void> => {
+    try {
+      setIsLoading(true);
+      await api.post(API_ENDPOINTS.ONBOARDING.UPDATE_STEP, { step });
+      // Refresh onboarding status after update
+      await fetchOnboardingStatus();
+      toast.success('Onboarding progress updated');
+    } catch (error: any) {
+      console.error('Failed to update onboarding step:', error);
+      toast.error(error.response?.data?.message || 'Failed to update onboarding step');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value = {
     user,
     isLoading,
     isAuthenticated,
+    onboardingStatus,
+    fetchOnboardingStatus,
+    updateOnboardingStep,
     login,
     register,
     logout,
